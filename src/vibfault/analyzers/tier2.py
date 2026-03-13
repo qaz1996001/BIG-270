@@ -527,8 +527,7 @@ class Tier2Analyzer:
         confidence = (0.55 if sideband_only else 0.70) * confidence_modifier
 
         logger.debug(
-            "Fault 7 (Ball Defect): %d harmonics, %d FTF sidebands, "
-            "sideband_only=%s, conf=%.3f",
+            "Fault 7 (Ball Defect): %d harmonics, %d FTF sidebands, sideband_only=%s, conf=%.3f",
             len(harmonics),
             len(ftf_sidebands),
             sideband_only,

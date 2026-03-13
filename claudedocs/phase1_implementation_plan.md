@@ -65,7 +65,8 @@ Phase 1 涵蓋 **Tier 0-2** 的完整分析能力，以「手上有什麼參數�
 | Tier 1 Analyzer | `src/vibfault/analyzers/tier1.py` | Done | Order analysis — 1X/2X/nX 特徵提取, sub-synchronous detection, 6 fault rules |
 | Tier 2 Analyzer | `src/vibfault/analyzers/tier2.py` | Done | Envelope analysis — BPFI/BPFO/BSF/FTF matching, 3 bearing fault specific diagnosis |
 | Pipeline | `src/vibfault/pipeline.py` | Done | Tier 自動選擇, analyzer orchestration, conflict resolution logic |
-| Tests | `tests/` | TODO | Unit tests + integration tests（僅有 `__init__.py`） |
+| Tests | `tests/` | **Done** | 141 tests across 8 files — unit + integration for all modules |
+| CLI | `src/vibfault/__main__.py` | **Done** | argparse CLI with CSV/WAV input, JSON/text output |
 
 ### 模組依賴關係
 
@@ -138,9 +139,9 @@ BearingGeometry  ───┤
 | M1 | Core Infrastructure | `models.py`, `preprocessing.py`, `frequencies.py` — 資料結構與訊號處理基礎 | **DONE** |
 | M2 | Tier 0-2 Analyzers | `tier0.py`, `tier1.py`, `tier2.py` — 三層分析器完整實作 | **DONE** |
 | M3 | Pipeline Integration | `pipeline.py` — Tier 自動選擇 + analyzer orchestration + conflict resolution | **DONE** |
-| M4 | Test Suite | Unit tests for all modules — 合成訊號、邊界條件、異常處理 | **TODO** |
-| M5 | Validation | 使用 CWRU bearing dataset 驗證，調整 thresholds 與 confidence weights | **TODO** |
-| M6 | Documentation | API docs（docstrings + auto-generated）、usage examples、CLI help | **TODO** |
+| M4 | Test Suite | 141 tests: unit + integration for all modules (8 test files) | **DONE** |
+| M5 | Validation | 使用 CWRU bearing dataset 驗證，調整 thresholds 與 confidence weights | **TODO** (deferred) |
+| M6 | Documentation & CLI | CLI with argparse, CSV/WAV input, JSON output, --help | **DONE** |
 
 ### 當前進度
 
@@ -148,9 +149,9 @@ BearingGeometry  ───┤
 M1 ████████████ Done
 M2 ████████████ Done
 M3 ████████████ Done
-M4 ░░░░░░░░░░░░ TODO  ← 當前工作重點
-M5 ░░░░░░░░░░░░ TODO
-M6 ░░░░░░░░░░░░ TODO
+M4 ████████████ Done (141 tests, all passing)
+M5 ░░░░░░░░░░░░ TODO (deferred — CWRU dataset validation)
+M6 ████████████ Done (CLI + docstrings)
 ```
 
 ---

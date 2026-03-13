@@ -117,9 +117,7 @@ class TestBrokenTooth:
         candidates = analyzer.analyze(signal, params)
 
         fault_ids = [c.fault_id for c in candidates]
-        assert 17 in fault_ids, (
-            f"Expected Fault #17 (Broken Tooth) in results, got {fault_ids}"
-        )
+        assert 17 in fault_ids, f"Expected Fault #17 (Broken Tooth) in results, got {fault_ids}"
 
         fault_17 = next(c for c in candidates if c.fault_id == 17)
         assert fault_17.confidence >= 0.3
@@ -196,9 +194,7 @@ class TestGearShaftBend:
         candidates = analyzer.analyze(signal, params)
 
         fault_ids = [c.fault_id for c in candidates]
-        assert 19 in fault_ids, (
-            f"Expected Fault #19 (Gear Shaft Bend) in results, got {fault_ids}"
-        )
+        assert 19 in fault_ids, f"Expected Fault #19 (Gear Shaft Bend) in results, got {fault_ids}"
 
         fault_19 = next(c for c in candidates if c.fault_id == 19)
         assert fault_19.confidence >= 0.3
@@ -235,9 +231,7 @@ class TestGearWear:
         candidates = analyzer.analyze(signal, params)
 
         fault_ids = [c.fault_id for c in candidates]
-        assert 20 in fault_ids, (
-            f"Expected Fault #20 (Gear Wear) in results, got {fault_ids}"
-        )
+        assert 20 in fault_ids, f"Expected Fault #20 (Gear Wear) in results, got {fault_ids}"
 
         fault_20 = next(c for c in candidates if c.fault_id == 20)
         assert fault_20.confidence >= 0.3
