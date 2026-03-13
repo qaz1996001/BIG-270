@@ -1,0 +1,50 @@
+[project]
+name = "vibfault"
+version = "0.2.0"
+description = "Parameter-Driven Adaptive Vibration Fault Classification System — diagnoses 20 fault types across 6 categories with adaptive depth based on available machine parameters."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+keywords = ["vibration", "fault-diagnosis", "predictive-maintenance", "signal-processing", "fft"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "matplotlib>=3.9",
+    "plotly>=5.22",
+    "PyWavelets>=1.7",
+]
+
+[project.scripts]
+vibfault = "vibfault.__main__:main"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "TCH"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "python-pptx>=1.0.2",
+    "ruff>=0.15.5",
+]
