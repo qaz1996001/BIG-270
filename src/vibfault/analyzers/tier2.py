@@ -18,6 +18,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from vibfault.analyzers._helpers import check_sidebands, find_harmonics_in_spectrum
 from vibfault.analyzers.protocol import FaultCandidate
 from vibfault.core.frequencies import (
@@ -30,12 +32,11 @@ from vibfault.core.models import BearingGeometry, Evidence
 from vibfault.core.preprocessing import (
     apply_window,
     compute_envelope,
+    compute_kurtogram,
     detrend,
 )
 
 if TYPE_CHECKING:
-    import numpy as np
-
     from vibfault.core.models import MachineParameters
 
 logger = logging.getLogger(__name__)
@@ -154,11 +155,47 @@ class Tier2Analyzer:
         )
 
         # ------------------------------------------------------------------
-        # 4. Compute envelope spectrum
+        # 4. Compute envelope spectrum (with optional kurtogram band selection)
         # ------------------------------------------------------------------
         preprocessed = detrend(signal)
         preprocessed = apply_window(preprocessed)
+
+        # Optionally use kurtogram to auto-select optimal demodulation band.
+        # Only activated when signal is long enough AND kurtosis is strongly
+        # elevated (>5.0), indicating genuine impulsive content like bearing
+        # defects.  A full-band envelope is always computed as the primary
+        # analysis path; the kurtogram band is used as a secondary refinement.
         env_freqs, env_amps = compute_envelope(preprocessed, params.sampling_rate)
+
+        min_samples_kurtogram = 4096
+        if preprocessed.size >= min_samples_kurtogram:
+            try:
+                center, bw, kurt = compute_kurtogram(
+                    preprocessed,
+                    params.sampling_rate,
+                    levels=6,
+                )
+                if kurt > 5.0:
+                    kurto_band = (
+                        max(1.0, center - bw / 2.0),
+                        center + bw / 2.0,
+                    )
+                    logger.info(
+                        "Kurtogram selected band: %.1f-%.1f Hz (kurtosis=%.2f)",
+                        kurto_band[0],
+                        kurto_band[1],
+                        kurt,
+                    )
+                    # Use kurtogram-band envelope only if it has stronger peaks
+                    kb_freqs, kb_amps = compute_envelope(
+                        preprocessed,
+                        params.sampling_rate,
+                        band=kurto_band,
+                    )
+                    if np.max(kb_amps) > np.max(env_amps):
+                        env_freqs, env_amps = kb_freqs, kb_amps
+            except (ValueError, RuntimeError):
+                logger.debug("Kurtogram failed; using full-band envelope.")
 
         # ------------------------------------------------------------------
         # 5. Search for fault signatures

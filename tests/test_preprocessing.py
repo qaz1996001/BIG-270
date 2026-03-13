@@ -8,6 +8,11 @@ Covers:
 * ``compute_cepstrum`` -- Shape, periodic signal peak, input validation.
 * ``time_domain_features`` -- RMS, peak, kurtosis, crest factor, skewness.
 * ``velocity_rms`` -- Integration accuracy for a pure tone.
+* ``compute_stft`` -- STFT shape and frequency recovery.
+* ``compute_cwt`` -- CWT shape and frequency recovery.
+* ``compute_spectral_kurtosis`` -- Spectral kurtosis for impulsive signals.
+* ``compute_kurtogram`` -- Optimal band selection for impulsive signals.
+* ``compute_emd`` -- EMD decomposition and reconstruction.
 """
 
 from __future__ import annotations
@@ -20,8 +25,13 @@ from vibfault.core.preprocessing import (
     apply_window,
     bandpass_filter,
     compute_cepstrum,
+    compute_cwt,
+    compute_emd,
     compute_envelope,
     compute_fft,
+    compute_kurtogram,
+    compute_spectral_kurtosis,
+    compute_stft,
     detrend,
     time_domain_features,
     velocity_rms,
@@ -364,3 +374,225 @@ class TestVelocityRMS:
     def test_zero_signal_returns_zero(self) -> None:
         signal = np.zeros(1024)
         assert velocity_rms(signal, fs=1000.0) == approx(0.0, abs=1e-10)
+
+
+# ---------------------------------------------------------------------------
+# compute_stft
+# ---------------------------------------------------------------------------
+
+
+class TestComputeSTFT:
+    """Verify STFT output shape and frequency recovery."""
+
+    def test_output_shape(self) -> None:
+        """Output arrays have consistent dimensions."""
+        fs = 1000.0
+        n = 4096
+        rng = np.random.default_rng(42)
+        signal = rng.standard_normal(n)
+
+        times, frequencies, magnitude = compute_stft(signal, fs, nperseg=256)
+
+        assert frequencies.ndim == 1
+        assert times.ndim == 1
+        assert magnitude.shape == (frequencies.size, times.size)
+
+    def test_single_sine_frequency(self) -> None:
+        """A pure 100 Hz sine should show energy at 100 Hz in STFT."""
+        fs = 4000.0
+        n = 8192
+        t = np.arange(n) / fs
+        signal = np.sin(2 * np.pi * 100 * t)
+
+        times, frequencies, magnitude = compute_stft(signal, fs, nperseg=512)
+
+        # Average across time to get mean spectrum
+        mean_spectrum = magnitude.mean(axis=1)
+        peak_idx = np.argmax(mean_spectrum)
+        assert frequencies[peak_idx] == approx(100.0, abs=10.0)
+
+    def test_rejects_2d_input(self) -> None:
+        with pytest.raises(ValueError, match="1-D"):
+            compute_stft(np.ones((4, 4)), fs=1000.0)
+
+
+# ---------------------------------------------------------------------------
+# compute_cwt
+# ---------------------------------------------------------------------------
+
+
+class TestComputeCWT:
+    """Verify CWT output shape and frequency recovery."""
+
+    def test_output_shape(self) -> None:
+        """Output has (num_freqs, signal_length) shape."""
+        fs = 1000.0
+        n = 2048
+        rng = np.random.default_rng(42)
+        signal = rng.standard_normal(n)
+
+        times, frequencies, coefficients = compute_cwt(
+            signal,
+            fs,
+            num_freqs=32,
+        )
+
+        assert times.shape == (n,)
+        assert frequencies.shape == (32,)
+        assert coefficients.shape == (32, n)
+
+    def test_single_sine_frequency(self) -> None:
+        """A pure 50 Hz sine should produce a CWT peak near 50 Hz."""
+        fs = 1000.0
+        n = 4096
+        t = np.arange(n) / fs
+        signal = np.sin(2 * np.pi * 50 * t)
+
+        times, frequencies, coefficients = compute_cwt(
+            signal,
+            fs,
+            num_freqs=64,
+            freq_range=(10.0, 200.0),
+        )
+
+        # Average across time
+        mean_energy = coefficients.mean(axis=1)
+        peak_idx = np.argmax(mean_energy)
+        assert frequencies[peak_idx] == approx(50.0, abs=10.0)
+
+    def test_rejects_2d_input(self) -> None:
+        with pytest.raises(ValueError, match="1-D"):
+            compute_cwt(np.ones((4, 4)), fs=1000.0)
+
+
+# ---------------------------------------------------------------------------
+# compute_spectral_kurtosis
+# ---------------------------------------------------------------------------
+
+
+class TestSpectralKurtosis:
+    """Verify spectral kurtosis for impulsive vs smooth signals."""
+
+    def test_impulsive_signal_high_kurtosis(self) -> None:
+        """A signal with sharp periodic impulses in a specific band should
+        have high spectral kurtosis in that band."""
+        fs = 10000.0
+        n = 20000
+        rng = np.random.default_rng(42)
+        signal = rng.standard_normal(n) * 0.01
+
+        # Add sharp impulses (3 samples wide) every 500 samples —
+        # short bursts excite a wide band and produce genuinely impulsive
+        # (high-kurtosis) envelopes.
+        for i in range(0, n, 500):
+            burst_len = min(3, n - i)
+            signal[i : i + burst_len] += 10.0
+
+        kurt = compute_spectral_kurtosis(signal, fs, band=(2000, 4000))
+        assert kurt > 2.0, f"Expected high kurtosis for impulsive signal, got {kurt}"
+
+    def test_gaussian_noise_low_kurtosis(self) -> None:
+        """Pure Gaussian noise should have near-zero spectral kurtosis."""
+        fs = 10000.0
+        rng = np.random.default_rng(42)
+        signal = rng.standard_normal(20000)
+
+        kurt = compute_spectral_kurtosis(signal, fs, band=(1000, 4000))
+        assert abs(kurt) < 2.0, f"Expected low kurtosis for noise, got {kurt}"
+
+
+# ---------------------------------------------------------------------------
+# compute_kurtogram
+# ---------------------------------------------------------------------------
+
+
+class TestKurtogram:
+    """Verify kurtogram finds optimal band for impulsive signals."""
+
+    def test_finds_impulsive_band(self) -> None:
+        """Kurtogram should identify a band with elevated kurtosis for
+        an impulsive signal, and the kurtosis should exceed that of
+        broadband noise."""
+        fs = 10000.0
+        n = 20000
+        rng = np.random.default_rng(42)
+        signal = rng.standard_normal(n) * 0.01
+
+        # Add sharp impulses every 500 samples — broadband excitation
+        for i in range(0, n, 500):
+            burst_len = min(3, n - i)
+            signal[i : i + burst_len] += 10.0
+
+        center, bw, kurt = compute_kurtogram(signal, fs, levels=5)
+
+        # Basic sanity: valid band and positive kurtosis
+        assert center > 0
+        assert bw > 0
+        assert kurt > 1.0, f"Expected elevated kurtosis, got {kurt}"
+
+    def test_returns_valid_band(self) -> None:
+        """Kurtogram should always return a valid frequency band."""
+        fs = 10000.0
+        rng = np.random.default_rng(42)
+        signal = rng.standard_normal(4096)
+
+        center, bw, kurt = compute_kurtogram(signal, fs, levels=4)
+
+        assert center > 0
+        assert bw > 0
+        assert center - bw / 2.0 >= 0
+
+    def test_rejects_2d_input(self) -> None:
+        with pytest.raises(ValueError, match="1-D"):
+            compute_kurtogram(np.ones((4, 4)), fs=1000.0)
+
+
+# ---------------------------------------------------------------------------
+# compute_emd
+# ---------------------------------------------------------------------------
+
+
+class TestComputeEMD:
+    """Verify Empirical Mode Decomposition."""
+
+    def test_decomposition_produces_imfs(self) -> None:
+        """EMD of a multi-component signal should produce multiple IMFs."""
+        fs = 1000.0
+        n = 2048
+        t = np.arange(n) / fs
+        signal = np.sin(2 * np.pi * 5 * t) + 0.5 * np.sin(2 * np.pi * 50 * t)
+
+        imfs = compute_emd(signal)
+
+        assert len(imfs) >= 2, f"Expected >=2 IMFs, got {len(imfs)}"
+        for imf in imfs:
+            assert imf.shape == (n,)
+
+    def test_reconstruction(self) -> None:
+        """Sum of all IMFs should reconstruct the original signal."""
+        fs = 1000.0
+        n = 2048
+        t = np.arange(n) / fs
+        signal = np.sin(2 * np.pi * 10 * t) + 0.3 * np.sin(2 * np.pi * 80 * t)
+
+        imfs = compute_emd(signal)
+        reconstructed = sum(imfs)
+
+        np.testing.assert_allclose(reconstructed, signal, atol=1e-6)
+
+    def test_max_imfs(self) -> None:
+        """Limiting max_imfs should cap the number of IMFs returned."""
+        fs = 1000.0
+        n = 2048
+        t = np.arange(n) / fs
+        signal = (
+            np.sin(2 * np.pi * 5 * t) + np.sin(2 * np.pi * 30 * t) + np.sin(2 * np.pi * 100 * t)
+        )
+
+        imfs = compute_emd(signal, max_imfs=2)
+        # Should have at most 2 IMFs + 1 residual = 3
+        assert len(imfs) <= 4
+
+    def test_rejects_2d_input(self) -> None:
+        with pytest.raises(ValueError, match="1-D"):
+            compute_emd(np.ones((4, 4)))

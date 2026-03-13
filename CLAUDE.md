@@ -2,7 +2,7 @@
 
 > **Project Code**: BIG-270
 > **Language**: Bilingual (English code/API, 繁體中文 docs/comments)
-> **Status**: Tier 0-4 implemented (20/20 faults), 141 tests passing
+> **Status**: Tier 0-4 implemented (20/20 faults), 156 tests passing
 
 ---
 
@@ -39,7 +39,7 @@ src/vibfault/
 ├── core/
 │   ├── models.py                  # MachineParameters, DiagnosisResult, Evidence, etc.
 │   ├── frequencies.py             # Bearing, electrical, gear frequency formulas
-│   └── preprocessing.py           # detrend, apply_window, compute_fft, compute_cepstrum
+│   └── preprocessing.py           # detrend, apply_window, compute_fft, cepstrum, STFT, CWT, kurtogram, EMD
 ├── analyzers/
 │   ├── protocol.py                # FaultCandidate dataclass + Analyzer protocol
 │   ├── _helpers.py                # Shared: find_peak_near, find_harmonics, check_sidebands
@@ -53,7 +53,7 @@ src/vibfault/
 
 tests/
 ├── test_frequencies.py            # 27 tests — bearing + electrical + gear formulas + frequency_match
-├── test_preprocessing.py          # 25 tests — detrend, window, FFT, envelope, cepstrum, features, vrms
+├── test_preprocessing.py          # 40 tests — detrend, window, FFT, envelope, cepstrum, STFT, CWT, kurtogram, EMD, features, vrms
 ├── test_tier0.py                  # 16 tests — ISO 10816 severity, health indicators, anomaly detection
 ├── test_tier1.py                  # 17 tests — all 6 fault rules + auto RPM penalty + can_run
 ├── test_tier2.py                  # 12 tests — inner/outer/ball defects + auto RPM + can_run
