@@ -2,7 +2,7 @@
 
 > **Project Code**: BIG-270
 > **Language**: Bilingual (English code/API, 繁體中文 docs/comments)
-> **Status**: Tier 0-4 implemented (20/20 faults), 156 tests passing
+> **Status**: Tier 0-4 implemented (20/20 faults), 170 tests passing
 
 ---
 
@@ -36,6 +36,7 @@ src/vibfault/
 ├── __init__.py
 ├── __main__.py
 ├── pipeline.py                    # Orchestration + conflict resolution
+├── visualization.py               # plot_spectrum, plot_envelope, plot_cepstrum, plot_waveform, plot_diagnosis
 ├── core/
 │   ├── models.py                  # MachineParameters, DiagnosisResult, Evidence, etc.
 │   ├── frequencies.py             # Bearing, electrical, gear frequency formulas
@@ -55,10 +56,11 @@ tests/
 ├── test_frequencies.py            # 27 tests — bearing + electrical + gear formulas + frequency_match
 ├── test_preprocessing.py          # 40 tests — detrend, window, FFT, envelope, cepstrum, STFT, CWT, kurtogram, EMD, features, vrms
 ├── test_tier0.py                  # 16 tests — ISO 10816 severity, health indicators, anomaly detection
-├── test_tier1.py                  # 17 tests — all 6 fault rules + auto RPM penalty + can_run
-├── test_tier2.py                  # 12 tests — inner/outer/ball defects + auto RPM + can_run
+├── test_tier1.py                  # 19 tests — all 6 fault rules + whirl/whip distinction + auto RPM + can_run
+├── test_tier2.py                  # 13 tests — inner/outer/ball defects + auto RPM + can_run
 ├── test_tier3.py                  # 6 tests — air gap, rotor bar, stator
 ├── test_tier4.py                  # 6 tests — 5 gear faults + can_run
+├── test_visualization.py          # 12 tests — spectrum, envelope, cepstrum, waveform, diagnosis summary
 └── test_pipeline.py               # 22 tests — Tier 0-4 integration, mutual exclusions, merge, warnings
 ```
 

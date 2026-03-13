@@ -296,6 +296,56 @@ class TestOilWhirlWhip:
         assert fault.merged_with is not None
         assert 12 in fault.merged_with
 
+    def test_oil_whip_detected_with_critical_speed(self) -> None:
+        """When sub-sync freq matches critical speed, emit Oil Whip (#12) only."""
+        # critical_speed = 756 RPM → critical_freq = 12.6 Hz
+        # sub-sync at 0.42X = 12.6 Hz → matches critical → Oil Whip
+        critical_rpm = SHAFT_FREQ * 0.42 * 60.0  # 756 RPM
+        components = [
+            (SHAFT_FREQ, 1.0),
+            (SHAFT_FREQ * 0.42, 3.0),
+        ]
+        signal = _make_signal(components)
+        params = MachineParameters(
+            sampling_rate=FS,
+            rpm=RPM,
+            critical_speed=critical_rpm,
+        )
+
+        analyzer = Tier1Analyzer()
+        candidates = analyzer.analyze(signal, params)
+
+        assert 12 in _fault_ids(candidates), (
+            f"Expected Fault #12 (Oil Whip); got {_fault_ids(candidates)}"
+        )
+        fault = _get_fault(candidates, 12)
+        assert fault.merged_with is None  # NOT merged — distinguished
+
+    def test_oil_whirl_detected_with_critical_speed(self) -> None:
+        """When sub-sync freq does NOT match critical speed, emit Oil Whirl (#11)."""
+        # critical_speed = 3000 RPM → critical_freq = 50 Hz
+        # sub-sync at 0.42X = 12.6 Hz → does NOT match → Oil Whirl
+        components = [
+            (SHAFT_FREQ, 1.0),
+            (SHAFT_FREQ * 0.42, 3.0),
+        ]
+        signal = _make_signal(components)
+        params = MachineParameters(
+            sampling_rate=FS,
+            rpm=RPM,
+            critical_speed=3000.0,
+        )
+
+        analyzer = Tier1Analyzer()
+        candidates = analyzer.analyze(signal, params)
+
+        assert 11 in _fault_ids(candidates), (
+            f"Expected Fault #11 (Oil Whirl); got {_fault_ids(candidates)}"
+        )
+        fault = _get_fault(candidates, 11)
+        assert fault.merged_with is None  # NOT merged — distinguished
+        assert fault.fault_name == "Oil Whirl"
+
     def test_oil_whirl_not_triggered_outside_range(self) -> None:
         """Peak at 0.2X should NOT trigger Oil Whirl/Whip."""
         components = [

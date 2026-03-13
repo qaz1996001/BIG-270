@@ -437,11 +437,24 @@ def _check_looseness(features: dict[str, object]) -> FaultCandidate | None:
     )
 
 
-def _check_oil_whirl_whip(features: dict[str, object]) -> FaultCandidate | None:
-    """Faults 11/12 -- Oil Whirl / Whip (merged).
+def _check_oil_whirl_whip(
+    features: dict[str, object],
+    critical_speed: float | None = None,
+) -> FaultCandidate | None:
+    """Faults 11/12 -- Oil Whirl / Whip.
 
     Conditions:
       - A sub-synchronous peak exists in the 0.35X -- 0.50X range.
+
+    When ``critical_speed`` is provided, the analyzer attempts to
+    distinguish Oil Whirl from Oil Whip:
+      - **Oil Whip**: sub-sync frequency ≈ first critical speed
+        (locks onto natural frequency).
+      - **Oil Whirl**: sub-sync frequency does NOT match critical speed
+        (tracks ~0.42-0.48X of shaft speed).
+
+    Without ``critical_speed``, the pair is emitted as a merged
+    diagnosis (#11 + #12).
 
     Base confidence: 0.70.
     """
@@ -449,6 +462,9 @@ def _check_oil_whirl_whip(features: dict[str, object]) -> FaultCandidate | None:
         return None
 
     ratio: float = features["sub_sync_frequency_ratio"]  # type: ignore[assignment]
+    shaft_freq: float = features["shaft_freq"]  # type: ignore[assignment]
+    sub_sync_freq = ratio * shaft_freq
+
     evidence = [
         _evidence(
             "sub_sync_frequency_ratio",
@@ -459,6 +475,55 @@ def _check_oil_whirl_whip(features: dict[str, object]) -> FaultCandidate | None:
         ),
     ]
 
+    # Attempt to distinguish Whirl vs Whip using critical_speed
+    if critical_speed is not None:
+        critical_freq = critical_speed / 60.0
+        # ±5% tolerance for matching sub-sync to critical frequency
+        tol = 0.05
+        is_whip = abs(sub_sync_freq - critical_freq) / critical_freq <= tol
+
+        if is_whip:
+            evidence.append(
+                _evidence(
+                    "critical_speed_match",
+                    sub_sync_freq,
+                    (critical_freq * (1 - tol), critical_freq * (1 + tol)),
+                    1.0 - abs(sub_sync_freq - critical_freq) / critical_freq,
+                    f"Sub-sync freq {sub_sync_freq:.2f} Hz matches critical "
+                    f"speed {critical_speed:.0f} RPM ({critical_freq:.2f} Hz) "
+                    f"-- Oil Whip",
+                )
+            )
+            return FaultCandidate(
+                fault_id=12,
+                fault_name="Oil Whip",
+                fault_category="journal_bearing",
+                confidence=0.75,
+                diagnosis_type="S",
+                evidence=evidence,
+            )
+        else:
+            evidence.append(
+                _evidence(
+                    "critical_speed_mismatch",
+                    sub_sync_freq,
+                    (critical_freq * (1 - tol), critical_freq * (1 + tol)),
+                    0.0,
+                    f"Sub-sync freq {sub_sync_freq:.2f} Hz does NOT match "
+                    f"critical speed {critical_speed:.0f} RPM ({critical_freq:.2f} Hz) "
+                    f"-- Oil Whirl",
+                )
+            )
+            return FaultCandidate(
+                fault_id=11,
+                fault_name="Oil Whirl",
+                fault_category="journal_bearing",
+                confidence=0.75,
+                diagnosis_type="S",
+                evidence=evidence,
+            )
+
+    # No critical_speed — emit as merged #11/#12
     return FaultCandidate(
         fault_id=11,
         fault_name="Oil Whirl / Whip",
@@ -566,7 +631,10 @@ class Tier1Analyzer:
 
         candidates: list[FaultCandidate] = []
         for rule_fn in _FAULT_RULES:
-            candidate = rule_fn(features)
+            if rule_fn is _check_oil_whirl_whip:
+                candidate = rule_fn(features, critical_speed=params.critical_speed)
+            else:
+                candidate = rule_fn(features)
             if candidate is None:
                 continue
             candidate.confidence *= confidence_scale
