@@ -152,8 +152,15 @@ class Tier3Analyzer:
         # Only emit if rotor-bar was NOT detected (discriminator)
         has_rotor_fault = c14 is not None
         c10 = self._check_stator_electrical(
-            freqs, amps, f_2fl, shaft_freq, f_pole_pass, noise_floor,
-            tol, confidence_scale, has_rotor_fault,
+            freqs,
+            amps,
+            f_2fl,
+            shaft_freq,
+            f_pole_pass,
+            noise_floor,
+            tol,
+            confidence_scale,
+            has_rotor_fault,
         )
         if c10 is not None:
             candidates.append(c10)

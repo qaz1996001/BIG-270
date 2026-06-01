@@ -60,9 +60,7 @@ def _add_tone(signal: np.ndarray, t: np.ndarray, freq: float, amp: float) -> np.
     return signal + amp * np.sin(2 * np.pi * freq * t)
 
 
-def _add_noise(
-    signal: np.ndarray, sigma: float = 0.01, seed: int = 42
-) -> np.ndarray:
+def _add_noise(signal: np.ndarray, sigma: float = 0.01, seed: int = 42) -> np.ndarray:
     """Add Gaussian noise with standard deviation *sigma*.
 
     Each call uses its own RNG seeded with *seed* so that test results are

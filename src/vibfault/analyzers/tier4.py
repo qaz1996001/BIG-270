@@ -134,46 +134,83 @@ class Tier4Analyzer:
 
         # GMF harmonics (shared across checks)
         gmf_harmonics = find_harmonics_in_spectrum(
-            freqs, amps, gmf, max_harmonics=5, tolerance=tol,
+            freqs,
+            amps,
+            gmf,
+            max_harmonics=5,
+            tolerance=tol,
         )
 
         candidates: list[FaultCandidate] = []
 
         # --- Fault #16: Gear Misalignment -------------------------------------
         c16 = self._check_gear_misalignment(
-            freqs, amps, gmf, shaft_freq, gmf_harmonics, noise_floor,
-            tol, confidence_scale,
+            freqs,
+            amps,
+            gmf,
+            shaft_freq,
+            gmf_harmonics,
+            noise_floor,
+            tol,
+            confidence_scale,
         )
         if c16 is not None:
             candidates.append(c16)
 
         # --- Fault #17: Broken Tooth ------------------------------------------
         c17 = self._check_broken_tooth(
-            freqs, amps, gmf, shaft_freq, gmf_harmonics, td_features,
-            quefrency, cepstrum, noise_floor, tol, confidence_scale,
+            freqs,
+            amps,
+            gmf,
+            shaft_freq,
+            gmf_harmonics,
+            td_features,
+            quefrency,
+            cepstrum,
+            noise_floor,
+            tol,
+            confidence_scale,
         )
         if c17 is not None:
             candidates.append(c17)
 
         # --- Fault #18: Gear Eccentricity -------------------------------------
         c18 = self._check_gear_eccentricity(
-            freqs, amps, gmf, shaft_freq, gmf_harmonics, noise_floor,
-            tol, confidence_scale,
+            freqs,
+            amps,
+            gmf,
+            shaft_freq,
+            gmf_harmonics,
+            noise_floor,
+            tol,
+            confidence_scale,
         )
         if c18 is not None:
             candidates.append(c18)
 
         # --- Fault #19: Gear Shaft Bend ---------------------------------------
         c19 = self._check_gear_shaft_bend(
-            freqs, amps, gmf, shaft_freq, noise_floor, tol, confidence_scale,
+            freqs,
+            amps,
+            gmf,
+            shaft_freq,
+            noise_floor,
+            tol,
+            confidence_scale,
         )
         if c19 is not None:
             candidates.append(c19)
 
         # --- Fault #20: Gear Wear ---------------------------------------------
         c20 = self._check_gear_wear(
-            freqs, amps, gmf, shaft_freq, gmf_harmonics, noise_floor,
-            tol, confidence_scale,
+            freqs,
+            amps,
+            gmf,
+            shaft_freq,
+            gmf_harmonics,
+            noise_floor,
+            tol,
+            confidence_scale,
         )
         if c20 is not None:
             candidates.append(c20)
@@ -221,7 +258,8 @@ class Tier4Analyzer:
 
         # Check for asymmetric sidebands around GMF
         sidebands = check_sidebands(
-            freqs, amps,
+            freqs,
+            amps,
             centre_freq=gmf_fund[1],
             sideband_spacing=shaft_freq,
             tolerance=tolerance,
@@ -268,8 +306,7 @@ class Tier4Analyzer:
                 expected_range=(0.30, 1.0),
                 match_score=min(asymmetry / 0.30, 1.0),
                 description=(
-                    f"Sideband asymmetry {asymmetry:.0%} "
-                    f"(>30% indicates gear misalignment)"
+                    f"Sideband asymmetry {asymmetry:.0%} (>30% indicates gear misalignment)"
                 ),
             ),
         ]
@@ -366,8 +403,7 @@ class Tier4Analyzer:
                     expected_range=(0.0, float("inf")),
                     match_score=0.9,
                     description=(
-                        f"Cepstrum rahmonic at gear rotation period "
-                        f"({gear_period:.4f} s)"
+                        f"Cepstrum rahmonic at gear rotation period ({gear_period:.4f} s)"
                     ),
                 )
             )
@@ -409,7 +445,8 @@ class Tier4Analyzer:
 
         # Check for symmetric 1X sidebands around GMF
         sidebands = check_sidebands(
-            freqs, amps,
+            freqs,
+            amps,
             centre_freq=gmf_fund[1],
             sideband_spacing=shaft_freq,
             tolerance=tolerance,
@@ -484,7 +521,8 @@ class Tier4Analyzer:
             return None
 
         sidebands = check_sidebands(
-            freqs, amps,
+            freqs,
+            amps,
             centre_freq=peak_gmf[0],
             sideband_spacing=shaft_freq,
             tolerance=tolerance,
@@ -557,7 +595,7 @@ class Tier4Analyzer:
             return None
 
         band_energy = float(np.mean(amps[band_mask] ** 2))
-        overall_energy = float(np.mean(amps ** 2))
+        overall_energy = float(np.mean(amps**2))
 
         if overall_energy <= 0:
             return None

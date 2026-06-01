@@ -19,6 +19,7 @@ dependencies = [
     "matplotlib>=3.9",
     "plotly>=5.22",
     "PyWavelets>=1.7",
+    "EMD-signal>=1.6",
 ]
 
 [project.scripts]

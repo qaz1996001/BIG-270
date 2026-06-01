@@ -2,7 +2,7 @@
 
 > **Project Code**: BIG-270
 > **Language**: Bilingual (English code/API, 繁體中文 docs/comments)
-> **Status**: Tier 0-4 implemented (20/20 faults), tests passing
+> **Status**: Tier 0-4 implemented (20/20 faults), 170 tests passing
 
 ---
 
@@ -36,10 +36,11 @@ src/vibfault/
 ├── __init__.py
 ├── __main__.py
 ├── pipeline.py                    # Orchestration + conflict resolution
+├── visualization.py               # plot_spectrum, plot_envelope, plot_cepstrum, plot_waveform, plot_diagnosis
 ├── core/
 │   ├── models.py                  # MachineParameters, DiagnosisResult, Evidence, etc.
 │   ├── frequencies.py             # Bearing, electrical, gear frequency formulas
-│   └── preprocessing.py           # detrend, apply_window, compute_fft, compute_cepstrum
+│   └── preprocessing.py           # detrend, apply_window, compute_fft, cepstrum, STFT, CWT, kurtogram, EMD
 ├── analyzers/
 │   ├── protocol.py                # FaultCandidate dataclass + Analyzer protocol
 │   ├── _helpers.py                # Shared: find_peak_near, find_harmonics, check_sidebands
@@ -52,13 +53,15 @@ src/vibfault/
     └── __init__.py
 
 tests/
-├── test_frequencies.py            # 8 tests — electrical + gear formulas
-├── test_preprocessing.py          # 3 tests — cepstrum
-├── test_tier1.py                  # 4 tests — looseness sub-harmonics
-├── test_tier2.py                  # 3 tests — BSF detection paths
+├── test_frequencies.py            # 27 tests — bearing + electrical + gear formulas + frequency_match
+├── test_preprocessing.py          # 40 tests — detrend, window, FFT, envelope, cepstrum, STFT, CWT, kurtogram, EMD, features, vrms
+├── test_tier0.py                  # 16 tests — ISO 10816 severity, health indicators, anomaly detection
+├── test_tier1.py                  # 19 tests — all 6 fault rules + whirl/whip distinction + auto RPM + can_run
+├── test_tier2.py                  # 13 tests — inner/outer/ball defects + auto RPM + can_run
 ├── test_tier3.py                  # 6 tests — air gap, rotor bar, stator
 ├── test_tier4.py                  # 6 tests — 5 gear faults + can_run
-└── test_pipeline.py               # 10 tests — integration, mutual exclusion, merge groups
+├── test_visualization.py          # 12 tests — spectrum, envelope, cepstrum, waveform, diagnosis summary
+└── test_pipeline.py               # 22 tests — Tier 0-4 integration, mutual exclusions, merge, warnings
 ```
 
 ### Key Document Roles
@@ -122,7 +125,7 @@ uv run ruff format src/ tests/ # Format
 uv run ruff check --fix .      # Auto-fix lint issues
 
 # Tests
-uv run pytest                  # Run all 40 tests
+uv run pytest                  # Run all 141 tests
 uv run pytest tests/test_tier3.py -v  # Run specific test file
 
 # Run
